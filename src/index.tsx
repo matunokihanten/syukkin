@@ -5,6 +5,7 @@ import pkg from 'pg';
 
 const { Pool } = pkg;
 
+// データベース接続設定
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false }
@@ -18,16 +19,13 @@ app.post('/api/auth', async (c) => {
     const { password } = await c.req.json();
     if (password === '1234') return c.json({ success: true });
     return c.json({ success: false, message: 'パスワードが違います' }, 401);
-  } catch (e) {
-    return c.json({ success: false, message: '通信エラー' }, 400);
-  }
+  } catch (e) { return c.json({ success: false }, 400); }
 });
 
-// --- B. データ同期 API (JOINを追加して名前を取得) ---
+// --- B. データ同期 API (JOINで名前を取得するように修正) ---
 app.get('/api/sync', async (c) => {
   try {
     const staffRes = await pool.query('SELECT * FROM staff ORDER BY id ASC');
-    // logsテーブルにstaffテーブルを結合してstaff_nameを取得
     const logsRes = await pool.query(`
       SELECT l.*, s.name as staff_name 
       FROM logs l 
@@ -36,17 +34,12 @@ app.get('/api/sync', async (c) => {
       ORDER BY l.timestamp DESC
     `);
     const settingsRes = await pool.query('SELECT * FROM settings');
-    
     const settings = {};
     settingsRes.rows.forEach(row => { settings[row.key] = row.value; });
 
     return c.json({
       success: true,
-      data: {
-        staff: staffRes.rows,
-        logs: logsRes.rows,
-        settings: settings
-      }
+      data: { staff: staffRes.rows, logs: logsRes.rows, settings }
     });
   } catch (err) {
     return c.json({ success: false, error: err.message }, 500);
@@ -65,12 +58,10 @@ app.post('/api/clock', async (c) => {
     const log = res.rows[0];
     log.staff_name = staff_name;
     return c.json({ success: true, log });
-  } catch (err) {
-    return c.json({ success: false, error: err.message }, 500);
-  }
+  } catch (err) { return c.json({ success: false, error: err.message }, 500); }
 });
 
-// --- D. 履歴更新 API (タイムスタンプ形式の修正) ---
+// --- D. 履歴更新 API ---
 app.post('/api/logs/update', async (c) => {
   try {
     const { logs } = await c.req.json();
@@ -78,10 +69,10 @@ app.post('/api/logs/update', async (c) => {
       if (log.deleted) {
         await pool.query('UPDATE logs SET deleted = 1 WHERE id = $1', [log.id]);
       } else if (log.id && !String(log.id).includes('.')) {
-        // 既存データの更新
+        // 既存ログの更新
         await pool.query('UPDATE logs SET timestamp = $1 WHERE id = $2', [log.timestamp, log.id]);
       } else {
-        // 新規追加 (スタッフ名からIDを引いて挿入)
+        // 新規ログの挿入
         await pool.query(
           'INSERT INTO logs (staff_id, type, timestamp) SELECT id, $1, $2 FROM staff WHERE name = $3',
           [log.type, log.timestamp, log.staff_name]
@@ -89,12 +80,10 @@ app.post('/api/logs/update', async (c) => {
       }
     }
     return c.json({ success: true });
-  } catch (err) {
-    return c.json({ success: false, error: err.message }, 500);
-  }
+  } catch (err) { return c.json({ success: false, error: err.message }, 500); }
 });
 
-// --- E. 設定・スタッフ管理 API ---
+// --- E. 設定・スタッフ更新 API ---
 app.post('/api/settings/update', async (c) => {
   try {
     const { settings } = await c.req.json();
@@ -122,7 +111,6 @@ app.post('/api/staff/update', async (c) => {
   } catch (err) { return c.json({ success: false }, 500); }
 });
 
-// 不足していた削除APIを追加
 app.post('/api/staff/delete', async (c) => {
   try {
     const { id } = await c.req.json();
@@ -131,12 +119,9 @@ app.post('/api/staff/delete', async (c) => {
   } catch (err) { return c.json({ success: false }, 500); }
 });
 
-// --- F. ルーティング ---
 app.get('/', serveStatic({ path: './public/index.html' }))
 app.get('/admin', serveStatic({ path: './public/admin.html' }))
 app.use('/*', serveStatic({ root: './public' }))
 
 const port = Number(process.env.PORT) || 3000;
-serve({ fetch: app.fetch, port: port, hostname: '0.0.0.0' });
-
-export default app
+serve({ fetch: app.fetch, port: port, hostname: '0.
