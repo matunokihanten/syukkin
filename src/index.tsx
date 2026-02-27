@@ -2,9 +2,8 @@ import { Hono } from 'hono'
 import { serve } from '@hono/node-server'
 import { serveStatic } from '@hono/node-server/serve-static'
 import pkg from 'pg';
-const { Pool } = pkg;
 
-// 1. データベース接続（エラーハンドリング付き）
+const { Pool } = pkg;
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false }
@@ -12,16 +11,14 @@ const pool = new Pool({
 
 const app = new Hono()
 
-// ログ出力（起動確認用）
 console.log("Starting Matsunoki Attendance System...");
 
-// 2. 静的ファイルの配信設定
-app.use('/static/*', serveStatic({ root: './public' }))
-app.get('/', (c) => c.redirect('/static/index.html'))
-app.get('/admin', (c) => c.redirect('/static/admin.html'))
-
-// --- 認証 API ---
-app.post('/api/auth', async (c) => c.json({ success: true }))
+// 1. 静的ファイルの配信設定
+// トップページにアクセスしたら index.html を、/admin なら admin.html を表示
+app.get('/', serveStatic({ path: './public/index.html' }))
+app.get('/admin', serveStatic({ path: './public/admin.html' }))
+// CSSや画像などのための設定
+app.use('/*', serveStatic({ root: './public' }))
 
 // --- データ同期 API ---
 app.get('/api/sync', async (c) => {
@@ -42,13 +39,25 @@ app.get('/api/sync', async (c) => {
   }
 })
 
-// 3. サーバーの起動設定（Render必須設定）
-const port = Number(process.env.PORT) || 3000;
+// --- 打刻 API ---
+app.post('/api/logs', async (c) => {
+  const body = await c.req.json();
+  try {
+    await pool.query(
+      'INSERT INTO logs (staff_id, type, timestamp) VALUES ($1, $2, CURRENT_TIMESTAMP)',
+      [body.staff_id, body.type]
+    );
+    return c.json({ success: true });
+  } catch (err) {
+    return c.json({ success: false }, 500);
+  }
+});
 
+const port = Number(process.env.PORT) || 3000;
 serve({
   fetch: app.fetch,
   port: port,
-  hostname: '0.0.0.0' // Renderで外部接続を許可するために必須
+  hostname: '0.0.0.0'
 }, (info) => {
   console.log(`✅ Server is running on port ${info.port}`);
 });

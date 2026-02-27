@@ -14,7 +14,8 @@ export default defineConfig({
         'hono',
         '@hono/node-server',
         '@hono/node-server/serve-static',
-        'pg'
+        'pg',
+        /^node:/ // Node.js標準モジュールをすべて除外
       ]
     }
   }
