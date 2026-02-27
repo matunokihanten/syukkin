@@ -1,29 +1,38 @@
-<div class="card mt-4 p-4">
-  <h3 class="font-bold mb-2">データー復旧 (JSONアップロード)</h3>
-  <input type="file" id="importFile" accept=".json" class="mb-2 block">
-  <button onclick="importData()" class="bg-blue-600 text-white px-4 py-2 rounded">インポート実行</button>
+<div id="importSection" class="card mt-8 p-6 bg-white rounded-lg shadow hidden">
+  <h2 class="text-xl font-bold mb-4">データの一括復旧</h2>
+  <p class="text-sm text-gray-600 mb-4">保存してある logs.json ファイルを選択してください。</p>
+  <input type="file" id="jsonFile" accept=".json" class="block w-full mb-4 border p-2">
+  <button onclick="handleImport()" class="bg-blue-600 text-white px-6 py-2 rounded font-bold">復旧を実行する</button>
 </div>
 
 <script>
-async function importData() {
-  const file = document.getElementById('importFile').files[0];
+// ログイン成功時にインポート画面を表示する処理
+function onLoginSuccess() {
+  document.getElementById('importSection').classList.remove('hidden');
+}
+
+async function handleImport() {
+  const file = document.getElementById('jsonFile').files[0];
   if (!file) return alert('ファイルを選択してください');
   
+  if (!confirm('現在のデータがすべて消去され、ファイルの内容で上書きされます。よろしいですか？')) return;
+
   const reader = new FileReader();
   reader.onload = async (e) => {
-    const json = JSON.parse(e.target.result);
-    const res = await fetch('/api/import', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(json)
-    });
-    const result = await res.json();
-    if (result.success) {
-      alert('復旧完了！ページを再読み込みします');
-      location.reload();
-    } else {
-      alert('エラー: ' + result.error);
-    }
+    try {
+      const res = await fetch('/api/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: e.target.result
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert('復旧が完了しました！');
+        location.reload();
+      } else {
+        alert('復旧失敗: ' + data.error);
+      }
+    } catch (err) { alert('通信エラーが発生しました'); }
   };
   reader.readAsText(file);
 }
