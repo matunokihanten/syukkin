@@ -1,12 +1,23 @@
 import { defineConfig } from 'vite'
-import pages from '@hono/vite-cloudflare-pages'
 
 export default defineConfig({
-  plugins: [
-    pages()
-  ],
   build: {
     outDir: 'dist',
-    emptyOutDir: true
+    target: 'node22',
+    lib: {
+      entry: 'src/index.tsx',
+      formats: ['es'],
+      fileName: 'index'
+    },
+    rollupOptions: {
+      // バックエンド用のパッケージはビルドに含めないように設定します
+      external: [
+        'hono',
+        '@hono/node-server',
+        '@hono/node-server/serve-static',
+        'pg',
+        /^node:/ // Node.js標準モジュールをすべて除外
+      ]
+    }
   }
 })
