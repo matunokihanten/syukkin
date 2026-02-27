@@ -1,24 +1,15 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
-import { serveStatic } from 'hono/cloudflare-workers'
 
 type Bindings = {
   DB: D1Database
+  ASSETS: any
 }
 
 const app = new Hono<{ Bindings: Bindings }>()
 
 // CORSとAPIルート設定
 app.use('/api/*', cors())
-
-// 静的ファイル配信
-app.use('/static/*', serveStatic({ root: './public' }))
-
-// ルートパス - 打刻画面
-app.get('/', serveStatic({ path: './public/static/index.html' }))
-
-// 管理画面
-app.get('/admin', serveStatic({ path: './public/static/admin.html' }))
 
 // ===== API エンドポイント =====
 
