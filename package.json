@@ -1,13 +1,14 @@
 {
   "name": "matsunoki-attendance",
   "version": "1.0.0",
-  "description": "松乃木飯店 出勤簿システム - Render + PostgreSQL 移行版",
+  "description": "松乃木飯店 出勤簿システム - Render + PostgreSQL版",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "start": "node dist/index.js",
-    "db:init": "node scripts/init-db.js"
+    "db:init": "node scripts/init-db.js",
+    "db:import": "node scripts/import-data.js"
   },
   "dependencies": {
     "@hono/node-server": "^1.13.7",
@@ -18,6 +19,6 @@
     "@types/node": "^22.10.2",
     "@types/pg": "^8.11.10",
     "typescript": "^5.7.2",
-    "vite": "^7.3.1"
+    "vite": "^5.4.11"
   }
 }
