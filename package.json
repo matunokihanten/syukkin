@@ -1,24 +1,24 @@
 {
   "name": "matsunoki-attendance",
   "version": "1.0.0",
-  "description": "松乃木飯店 出勤簿システム - Cloudflare Pages + D1 Database版",
+  "description": "松乃木飯店 出勤簿システム - Render + PostgreSQL版",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "start": "wrangler pages dev dist --d1=matsunoki-attendance-db --local --port 3000",
-    "db:init": "wrangler d1 execute matsunoki-attendance-db --local --file=./migrations/0001_initial_schema.sql",
-    "db:import": "wrangler d1 execute matsunoki-attendance-db --local --file=./import_old_data.sql"
+    "start": "node dist/index.js",
+    "db:init": "node scripts/init-db.js",
+    "db:import": "node scripts/import-data.js"
   },
   "dependencies": {
-    "hono": "^4.6.14"
+    "@hono/node-server": "^1.19.9",
+    "hono": "^4.12.3",
+    "pg": "^8.19.0"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20241220.0",
-    "@hono/vite-cloudflare-pages": "^0.4.2",
-    "@types/node": "^22.10.2",
-    "typescript": "^5.7.2",
-    "vite": "^5.4.11",
-    "wrangler": "^3.0.0"
+    "@types/node": "^22.19.13",
+    "@types/pg": "^8.16.0",
+    "typescript": "^5.9.3",
+    "vite": "^5.4.21"
   }
 }
