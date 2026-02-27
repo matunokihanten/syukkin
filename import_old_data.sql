@@ -1,10 +1,10 @@
--- 1. テーブル構造の調整（大きなID番号に対応させる）
-ALTER TABLE logs ALTER COLUMN id TYPE BIGINT;
+-- 1. 既存データを完全にリセット（重複防止）
+DELETE FROM logs;
+DELETE FROM staff;
+DELETE FROM settings;
+DELETE FROM sqlite_sequence WHERE name IN ('logs', 'staff', 'settings');
 
--- 2. 既存データを完全にリセット（重複防止）
-TRUNCATE TABLE logs, staff, settings RESTART IDENTITY;
-
--- 3. スタッフデータの登録
+-- 2. スタッフデータの登録
 INSERT INTO staff (name, break_start, break_end) VALUES
 ('李　偉', '14:15', '17:15'),
 ('ティミシナ　サファル', '14:15', '17:15'),
@@ -13,7 +13,7 @@ INSERT INTO staff (name, break_start, break_end) VALUES
 ('徐　俊明', '14:15', '17:15'),
 ('ニャンチョー', '14:15', '17:15');
 
--- 4. システム設定の登録
+-- 3. システム設定の登録
 INSERT INTO settings (key, value) VALUES
 ('breakStart', '14:30'),
 ('breakEnd', '17:00'),
@@ -25,10 +25,9 @@ INSERT INTO settings (key, value) VALUES
 ('compEnd', '22:00'),
 ('overtimeAlert', '10');
 
--- 5. 全打刻履歴の復元（logs.jsonの全データを反映）
-INSERT INTO logs (id, staff_id, type, timestamp, deleted)
-SELECT t.id, s.id, t.type, t.ts::timestamptz, t.deleted
-FROM (VALUES
+-- 4. 全打刻履歴の復元（SQLite互換のCTEを使用）
+WITH t(id, staff_name, type, ts, deleted) AS (
+  VALUES
   (1766627309273, '李　偉', 'IN', '2025-12-21T00:30:00Z', 0),
   (1766627309274, 'ティミシナ　サファル', 'IN', '2025-12-21T00:30:00Z', 0),
   (1766672300000, '李　偉', 'OUT', '2025-12-21T13:00:00Z', 0),
@@ -508,5 +507,8 @@ FROM (VALUES
   (1772497800002, 'ティミシナ　サファル', 'IN', '2026-02-27T00:30:00Z', 0),
   (1772515800000, '徐　俊明', 'OUT', '2026-02-27T05:30:00Z', 0),
   (1772525700000, '徐　俊明', 'IN', '2026-02-27T08:15:00Z', 0)
-) AS t(id, staff_name, type, ts, deleted)
+)
+INSERT INTO logs (id, staff_id, type, timestamp, deleted)
+SELECT t.id, s.id, t.type, t.ts, t.deleted
+FROM t
 JOIN staff s ON s.name = t.staff_name;
